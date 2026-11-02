@@ -1,0 +1,17 @@
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+      .setTitle('HTML & Zip Editor')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function saveHtmlContent(htmlString) {
+  var userProperties = PropertiesService.getUserProperties();
+  userProperties.setProperty('CUSTOM_HTML', htmlString);
+  return "Saved successfully!";
+}
+
+function getHtmlContent() {
+  var userProperties = PropertiesService.getUserProperties();
+  var savedHtml = userProperties.getProperty('CUSTOM_HTML');
+  return savedHtml || "<h3>Default Content</h3><p>Upload a .html or .zip file below to load custom content!</p>";
+}
