@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Store, Edit & Upload HTML/ZIP</title>
+    <!-- JSZip library to handle zip file extraction in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 10px; }
+      #preview { border: 1px solid #ccc; padding: 15px; margin-top: 20px; background: #f9f9f9; }
+      .file-section { margin-bottom: 15px; padding: 10px; background: #eee; border-radius: 4px; }
+      .btn-group { margin-bottom: 15px; }
+      button { padding: 8px 16px; cursor: pointer; margin-right: 5px; }
+      iframe { width: 100%; height: 250px; border: 1px solid #ccc; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <h2>Store, Edit & Upload HTML/ZIP</h2>
+
+    <div class="file-section">
+      <label for="fileInput"><b>Load File (.html or .zip):</b></label><br><br>
+      <input type="file" id="fileInput" accept=".html,.htm,.zip" onchange="handleFileUpload(event)">
+    </div>
+
+    <label for="editor"><b>HTML Editor:</b></label><br>
+    <textarea id="editor"></textarea><br>
+
+    <div class="btn-group">
+      <button onclick="saveData()">Save Changes</button>
+      <button onclick="openInAboutBlank()">Open in New Window (about:blank)</button>
+      <button onclick="loadIntoIframe()">Load into Frame (about:blank)</button>
+      <span id="status"></span>
+    </div>
+
+    <h3>Inline Preview</h3>
+    <div id="preview">Loading...</div>
+
+    <h3>about:blank Frame Preview</h3>
+    <iframe id="blankFrame" src="about:blank"></iframe>
+
+    <script>
+      window.onload = function() {
+        // Load saved content from browser's LocalStorage
+        var savedContent = localStorage.getItem('CUSTOM_HTML');
+        var defaultContent = '<h3>Default Content</h3><p>Upload a .html or .zip file below to load custom content!</p>';
+        var content = savedContent || defaultContent;
+
+        document.getElementById('editor').value = content;
+        document.getElementById('preview').innerHTML = content;
+      };
+
+      function saveData() {
+        var updatedHtml = document.getElementById('editor').value;
+        document.getElementById('status').innerText = 'Saving...';
+
+        // Save to browser LocalStorage
+        localStorage.setItem('CUSTOM_HTML', updatedHtml);
+        
+        document.getElementById('status').innerText = 'Saved successfully!';
+        document.getElementById('preview').innerHTML = updatedHtml;
+      }
+
+      function openInAboutBlank() {
+        var htmlContent = document.getElementById('editor').value;
+        var newWin = window.open('about:blank', '_blank');
+        if (newWin) {
+          newWin.document.open();
+          newWin.document.write(htmlContent);
+          newWin.document.close();
+        } else {
+          alert('Popup blocked! Please allow popups for this page.');
+        }
+      }
+
+      function loadIntoIframe() {
+        var htmlContent = document.getElementById('editor').value;
+        var frame = document.getElementById('blankFrame');
+        var frameDoc = frame.contentDocument || frame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(htmlContent);
+        frameDoc.close();
+      }
+
+      function handleFileUpload(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+
+        var fileName = file.name.toLowerCase();
+
+        if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            document.getElementById('editor').value = e.target.result;
+            document.getElementById('preview').innerHTML = e.target.result;
+          };
+          reader.readAsText(file);
+        } else if (fileName.endsWith('.zip')) {
+          JSZip.loadAsync(file).then(function(zip) {
+            // Find index.html or the first .html file in the zip
+            var htmlFile = zip.file("index.html") || Object.values(zip.files).find(f => f.name.endsWith('.html'));
+
+            if (htmlFile) {
+              htmlFile.async("string").then(function(content) {
+                document.getElementById('editor').value = content;
+                document.getElementById('preview').innerHTML = content;
+              });
+            } else {
+              alert('No HTML file found inside the ZIP archive.');
+            }
+          }).catch(function(err) {
+            alert('Error reading zip file: ' + err.message);
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
